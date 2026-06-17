@@ -1,0 +1,1089 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>MindVault — Mental Health Database System</title>
+<style>
+  /* ── Reset & Base ── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg        : #f0f4f8;
+    --surface   : #ffffff;
+    --border    : #d1dbe8;
+    --accent    : #3b6ea5;
+    --accent2   : #2a4e78;
+    --danger    : #c0392b;
+    --success   : #1e8449;
+    --warning   : #e67e22;
+    --text      : #1a1a2e;
+    --muted     : #6b7c93;
+    --code-bg   : #1e2a3a;
+    --code-text : #a8d8ea;
+    --radius    : 6px;
+    --shadow    : 0 2px 8px rgba(0,0,0,.10);
+  }
+
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    font-size: 14px;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* ── Login Screen ── */
+  #login-screen {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 60%, #0f3460 100%);
+  }
+
+  .login-box {
+    background: var(--surface);
+    border-radius: 10px;
+    padding: 40px 36px;
+    width: 360px;
+    box-shadow: 0 8px 32px rgba(0,0,0,.4);
+  }
+
+  .login-box h1 {
+    font-size: 24px;
+    color: var(--accent);
+    margin-bottom: 4px;
+    text-align: center;
+  }
+
+  .login-box .subtitle {
+    text-align: center;
+    color: var(--muted);
+    font-size: 12px;
+    margin-bottom: 28px;
+  }
+
+  .login-box label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+  }
+
+  .login-box input {
+    width: 100%;
+    padding: 9px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 14px;
+    margin-bottom: 16px;
+    outline: none;
+    transition: border-color .2s;
+  }
+
+  .login-box input:focus { border-color: var(--accent); }
+
+  .btn {
+    display: inline-block;
+    padding: 9px 18px;
+    border: none;
+    border-radius: var(--radius);
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    transition: opacity .15s, transform .1s;
+  }
+  .btn:hover   { opacity: .88; transform: translateY(-1px); }
+  .btn:active  { transform: translateY(0); }
+
+  .btn-primary  { background: var(--accent);  color: #fff; }
+  .btn-danger   { background: var(--danger);  color: #fff; }
+  .btn-success  { background: var(--success); color: #fff; }
+  .btn-sm       { padding: 5px 11px; font-size: 12px; }
+
+  .btn-full { width: 100%; }
+
+  #login-error {
+    color: var(--danger);
+    font-size: 13px;
+    margin-top: 8px;
+    text-align: center;
+    min-height: 18px;
+  }
+
+  /* ── App Shell ── */
+  #app { display: none; min-height: 100vh; }
+
+  /* ── Top Bar ── */
+  .topbar {
+    background: var(--accent2);
+    color: #fff;
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 52px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: var(--shadow);
+  }
+
+  .topbar-brand { font-size: 18px; font-weight: 700; letter-spacing: .5px; }
+  .topbar-brand span { opacity: .65; font-size: 13px; font-weight: 400; margin-left: 10px; }
+
+  .user-badge {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 13px;
+  }
+
+  .role-pill {
+    background: rgba(255,255,255,.18);
+    border-radius: 20px;
+    padding: 3px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: .3px;
+  }
+
+  .role-pill.admin   { background: #e74c3c; }
+  .role-pill.analyst { background: #27ae60; }
+
+  /* ── Nav ── */
+  nav {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    gap: 0;
+    padding: 0 24px;
+    overflow-x: auto;
+  }
+
+  nav button {
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    cursor: pointer;
+    padding: 14px 20px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted);
+    white-space: nowrap;
+    transition: color .2s, border-color .2s;
+  }
+
+  nav button:hover         { color: var(--accent); }
+  nav button.active        { color: var(--accent); border-bottom-color: var(--accent); }
+  nav button.admin-only    { color: #c0392b; }
+  nav button.admin-only:hover { color: #e74c3c; }
+
+  /* ── Main Content ── */
+  main { padding: 24px; max-width: 1200px; margin: 0 auto; }
+
+  .page { display: none; }
+  .page.active { display: block; }
+
+  h2 {
+    font-size: 20px;
+    margin-bottom: 4px;
+    color: var(--accent2);
+  }
+
+  .page-desc {
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 20px;
+  }
+
+  /* ── SQL Box ── */
+  .sql-box {
+    background: var(--code-bg);
+    color: var(--code-text);
+    border-radius: var(--radius);
+    padding: 14px 18px;
+    font-family: 'Courier New', monospace;
+    font-size: 12.5px;
+    line-height: 1.6;
+    margin-bottom: 18px;
+    white-space: pre-wrap;
+    word-break: break-all;
+    border-left: 4px solid var(--accent);
+  }
+
+  .sql-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .6px;
+    color: var(--muted);
+    margin-bottom: 6px;
+    font-weight: 700;
+  }
+
+  /* ── Tables ── */
+  .table-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    margin-bottom: 24px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  thead { background: var(--accent); color: #fff; }
+  thead th { padding: 10px 14px; text-align: left; font-weight: 600; white-space: nowrap; }
+
+  tbody tr:nth-child(odd)  { background: #f7f9fc; }
+  tbody tr:nth-child(even) { background: #ffffff; }
+  tbody tr:hover           { background: #e8f0fa; }
+  tbody td { padding: 9px 14px; border-top: 1px solid var(--border); vertical-align: top; }
+
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  .badge-red    { background: #fde8e8; color: #c0392b; }
+  .badge-orange { background: #fef3e2; color: #e67e22; }
+  .badge-green  { background: #e8f8f0; color: #1e8449; }
+
+  /* ── Forms ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 22px;
+    margin-bottom: 22px;
+    box-shadow: var(--shadow);
+  }
+
+  .card h3 { font-size: 15px; margin-bottom: 14px; color: var(--accent2); }
+
+  .form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+
+  .form-group label {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    margin-bottom: 4px;
+  }
+
+  .form-group input,
+  .form-group select {
+    width: 100%;
+    padding: 7px 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 13px;
+    outline: none;
+  }
+
+  .form-group input:focus,
+  .form-group select:focus { border-color: var(--accent); }
+
+  /* ── Alert ── */
+  .alert {
+    padding: 10px 14px;
+    border-radius: var(--radius);
+    font-size: 13px;
+    margin-bottom: 14px;
+    display: none;
+  }
+
+  .alert.show    { display: block; }
+  .alert-success { background: #e8f8f0; color: var(--success); border: 1px solid #a9dfbf; }
+  .alert-error   { background: #fde8e8; color: var(--danger);  border: 1px solid #f5b7b1; }
+
+  /* ── SQL Console ── */
+  #console-input {
+    width: 100%;
+    height: 120px;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    resize: vertical;
+    outline: none;
+    margin-bottom: 10px;
+    background: #fdfdff;
+  }
+
+  #console-input:focus { border-color: var(--accent); }
+
+  .quick-queries { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+
+  .quick-btn {
+    background: #eef2f9;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 5px 12px;
+    font-size: 12px;
+    cursor: pointer;
+    color: var(--accent);
+    font-weight: 600;
+    transition: background .15s;
+  }
+
+  .quick-btn:hover { background: #dce8f7; }
+
+  /* ── Features Table ── */
+  .feature-tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    margin-right: 4px;
+  }
+
+  .tag-trigger   { background: #fdebd0; color: #e67e22; }
+  .tag-proc      { background: #d5e8d4; color: #1e7e34; }
+  .tag-cursor    { background: #d1ecf1; color: #0c5460; }
+  .tag-tcl       { background: #e2d9f3; color: #4a235a; }
+  .tag-dcl       { background: #fde8e8; color: #c0392b; }
+  .tag-view      { background: #d6eaf8; color: #1a5276; }
+  .tag-index     { background: #fdfde8; color: #7d6608; }
+
+  code {
+    font-family: 'Courier New', monospace;
+    font-size: 11.5px;
+    background: #f0f4f8;
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: #c0392b;
+  }
+
+  /* ── Spinner ── */
+  .spinner {
+    display: inline-block;
+    width: 16px; height: 16px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+    vertical-align: middle;
+    margin-right: 6px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .loading { color: var(--muted); font-size: 13px; padding: 20px 0; }
+
+  /* ── Responsive ── */
+  @media (max-width: 600px) {
+    main { padding: 14px; }
+    .form-grid { grid-template-columns: 1fr 1fr; }
+    .topbar-brand span { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════
+     LOGIN SCREEN
+═══════════════════════════════════════════════ -->
+<div id="login-screen">
+  <div class="login-box">
+    <h1>🧠 MindVault</h1>
+    <p class="subtitle">Anonymized Mental Health Database System</p>
+
+    <label for="username">Username</label>
+    <input type="text" id="username" placeholder="admin or analyst" autocomplete="off" />
+
+    <label for="password">Password</label>
+    <input type="password" id="password" placeholder="Enter password" />
+
+    <button class="btn btn-primary btn-full" onclick="login()">Sign In</button>
+    <div id="login-error"></div>
+
+    <p style="margin-top:18px;font-size:11px;color:#aaa;text-align:center;">
+      admin / admin123 &nbsp;|&nbsp; analyst / analyst123
+    </p>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     APP SHELL
+═══════════════════════════════════════════════ -->
+<div id="app">
+
+  <!-- Top Bar -->
+  <div class="topbar">
+    <div class="topbar-brand">🧠 MindVault <span>Mental Health DB</span></div>
+    <div class="user-badge">
+      <span id="user-label"></span>
+      <span id="role-pill" class="role-pill"></span>
+      <button class="btn btn-sm" style="background:rgba(255,255,255,.18);color:#fff;" onclick="logout()">Logout</button>
+    </div>
+  </div>
+
+  <!-- Navigation -->
+  <nav>
+    <button onclick="showPage('patients')" id="nav-patients" class="active">👥 Patients</button>
+    <button onclick="showPage('symptoms')" id="nav-symptoms">🩺 Symptoms</button>
+    <button onclick="showPage('analysis')" id="nav-analysis">📊 Analysis</button>
+    <button onclick="showPage('therapy')"  id="nav-therapy">💬 Therapy</button>
+    <button onclick="showPage('nested')"   id="nav-nested">🔍 Nested Query</button>
+    <button onclick="showPage('features')" id="nav-features">🛠️ DB Features</button>
+    <button onclick="showPage('console')"  id="nav-console" class="admin-only" style="display:none;">⚙️ SQL Console</button>
+  </nav>
+
+  <!-- Main -->
+  <main>
+
+    <!-- ── PATIENTS PAGE ── -->
+    <div class="page active" id="page-patients">
+      <h2>Patient Records</h2>
+      <p class="page-desc">All anonymized patient profiles. Admins can add or remove records.</p>
+
+      <!-- Add Patient Form (Admin only) -->
+      <div class="card" id="add-patient-card" style="display:none;">
+        <h3>➕ Add New Patient</h3>
+        <div id="add-alert" class="alert"></div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Patient ID</label>
+            <input type="text" id="f-pid" placeholder="e.g. P032" />
+          </div>
+          <div class="form-group">
+            <label>Age Range</label>
+            <select id="f-age">
+              <option>18-25</option><option>26-35</option>
+              <option>36-45</option><option>46-55</option><option>55+</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Gender</label>
+            <select id="f-gender">
+              <option value="M">Male</option>
+              <option value="F">Female</option>
+              <option value="O">Other</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Case Category</label>
+            <select id="f-category">
+              <option>Anxiety</option><option>Depression</option><option>Stress</option>
+              <option>PTSD</option><option>OCD</option><option>Bipolar</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Date Created</label>
+            <input type="date" id="f-date" />
+          </div>
+        </div>
+        <button class="btn btn-success" onclick="addPatient()">Insert Patient</button>
+      </div>
+
+      <div class="sql-label">SQL Query Used</div>
+      <div class="sql-box" id="patients-sql">Loading...</div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Patient ID</th><th>Age Range</th><th>Gender</th>
+              <th>Case Category</th><th>Created Date</th>
+              <th id="del-col" style="display:none;">Action</th>
+            </tr>
+          </thead>
+          <tbody id="patients-body">
+            <tr><td colspan="6" class="loading"><span class="spinner"></span>Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── SYMPTOMS PAGE ── -->
+    <div class="page" id="page-symptoms">
+      <h2>Symptom Records</h2>
+      <p class="page-desc">3-table JOIN: Patient ⟶ Symptom_Record ⟶ Symptom_Type. Sorted by severity (highest first).</p>
+
+      <div class="sql-label">SQL Query Used</div>
+      <div class="sql-box" id="symptoms-sql">Loading...</div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Patient ID</th><th>Case</th><th>Age Range</th><th>Gender</th>
+              <th>Symptom</th><th>Severity</th><th>Record Date</th><th>Notes</th>
+            </tr>
+          </thead>
+          <tbody id="symptoms-body">
+            <tr><td colspan="8" class="loading"><span class="spinner"></span>Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── ANALYSIS PAGE ── -->
+    <div class="page" id="page-analysis">
+      <h2>Patient Analysis</h2>
+      <p class="page-desc">GROUP BY with COUNT, AVG, MAX, MIN aggregates. CASE expression assigns a Risk Level.</p>
+
+      <div class="sql-label">SQL Query Used</div>
+      <div class="sql-box" id="analysis-sql">Loading...</div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Patient ID</th><th>Category</th><th>Age</th><th>Gender</th>
+              <th>Total Records</th><th>Avg Severity</th><th>Max</th><th>Min</th><th>Risk Level</th>
+            </tr>
+          </thead>
+          <tbody id="analysis-body">
+            <tr><td colspan="9" class="loading"><span class="spinner"></span>Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── THERAPY PAGE ── -->
+    <div class="page" id="page-therapy">
+      <h2>Therapy Sessions</h2>
+      <p class="page-desc">JOIN between Therapy_Session and Patient tables. All scheduled therapy data.</p>
+
+      <div class="sql-label">SQL Query Used</div>
+      <div class="sql-box" id="therapy-sql">Loading...</div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Session ID</th><th>Patient ID</th><th>Case</th><th>Therapy Type</th>
+              <th>Duration (min)</th><th>Freq/Week</th><th>Session Date</th>
+            </tr>
+          </thead>
+          <tbody id="therapy-body">
+            <tr><td colspan="7" class="loading"><span class="spinner"></span>Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── NESTED QUERY PAGE ── -->
+    <div class="page" id="page-nested">
+      <h2>Nested Query — Above-Average Severity</h2>
+      <p class="page-desc">Subquery computes the global average severity. Outer query returns only patients above that average.</p>
+
+      <div class="sql-label">SQL Query Used</div>
+      <div class="sql-box" id="nested-sql">Loading...</div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Patient ID</th><th>Case Category</th><th>Age Range</th><th>Severity Score</th></tr>
+          </thead>
+          <tbody id="nested-body">
+            <tr><td colspan="4" class="loading"><span class="spinner"></span>Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── DB FEATURES PAGE ── -->
+    <div class="page" id="page-features">
+      <h2>Advanced DB Features</h2>
+      <p class="page-desc">Reference for Trigger, Stored Procedures, Cursor, View, Index, TCL, and DCL included in MindVault.</p>
+
+      <div class="sql-label">Feature Reference</div>
+
+      <div id="features-body">
+        <div class="loading"><span class="spinner"></span>Loading...</div>
+      </div>
+    </div>
+
+    <!-- ── SQL CONSOLE PAGE (Admin only) ── -->
+    <div class="page" id="page-console">
+      <h2>⚙️ SQL Console</h2>
+      <p class="page-desc">Admin-only. Run custom SELECT / SHOW / DESCRIBE queries against the MindVault database.</p>
+
+      <div class="card">
+        <h3>Quick Queries</h3>
+        <div class="quick-queries">
+          <button class="quick-btn" onclick="setQuery('SELECT * FROM Patient ORDER BY Profile_Creation_Date DESC LIMIT 10;')">All Patients (10)</button>
+          <button class="quick-btn" onclick="setQuery('SELECT * FROM Symptom_Record ORDER BY Severity_Score DESC LIMIT 10;')">Top Severity</button>
+          <button class="quick-btn" onclick="setQuery('SELECT Patient_ID, AVG(Severity_Score) AS Avg FROM Symptom_Record GROUP BY Patient_ID HAVING Avg > 6 ORDER BY Avg DESC;')">High Avg Severity</button>
+          <button class="quick-btn" onclick="setQuery('SELECT * FROM Patient_Summary ORDER BY Avg_Severity DESC;')">Patient Summary View</button>
+          <button class="quick-btn" onclick="setQuery('SELECT * FROM Therapy_Session WHERE Therapy_Type = \'CBT\' ORDER BY Session_Date;')">CBT Sessions</button>
+          <button class="quick-btn" onclick="setQuery('SELECT Case_Category, COUNT(*) AS Count FROM Patient GROUP BY Case_Category ORDER BY Count DESC;')">Cases by Category</button>
+          <button class="quick-btn" onclick="setQuery('SHOW TABLES;')">Show Tables</button>
+          <button class="quick-btn" onclick="setQuery('DESCRIBE Patient;')">Describe Patient</button>
+        </div>
+
+        <textarea id="console-input" placeholder="Enter SELECT query here...&#10;Example: SELECT * FROM Patient LIMIT 5;"></textarea>
+        <button class="btn btn-primary" onclick="runQuery()">▶ Run Query</button>
+        <button class="btn" style="background:#eee;margin-left:8px;" onclick="clearConsole()">Clear</button>
+      </div>
+
+      <div id="console-alert" class="alert"></div>
+
+      <div class="sql-label" id="console-sql-label" style="display:none;">Query Executed</div>
+      <div class="sql-box"   id="console-sql"       style="display:none;"></div>
+
+      <div class="table-wrap" id="console-table-wrap" style="display:none;">
+        <table>
+          <thead id="console-thead"></thead>
+          <tbody id="console-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+</div><!-- #app -->
+
+<!-- ═══════════════════════════════════════════════
+     JAVASCRIPT
+═══════════════════════════════════════════════ -->
+<script>
+  const API = 'http://localhost:3000';
+
+  let currentUser = null;
+  let currentPage = 'patients';
+  let pageLoaded  = {};
+
+  /* ─────────── AUTH ─────────── */
+
+  async function login() {
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value.trim();
+    const errEl    = document.getElementById('login-error');
+    errEl.textContent = '';
+
+    if (!username || !password) {
+      errEl.textContent = 'Please enter both username and password.';
+      return;
+    }
+
+    try {
+      const res  = await fetch(`${API}/login`, {
+        method  : 'POST',
+        headers : { 'Content-Type': 'application/json' },
+        body    : JSON.stringify({ username, password })
+      });
+      const data = await res.json();
+
+      if (!res.ok) { errEl.textContent = data.error; return; }
+
+      currentUser = data.user;
+      initApp();
+
+    } catch (e) {
+      errEl.textContent = 'Could not reach server. Is it running on port 3000?';
+    }
+  }
+
+  function logout() {
+    currentUser = null;
+    pageLoaded  = {};
+    document.getElementById('login-screen').style.display = 'flex';
+    document.getElementById('app').style.display          = 'none';
+    document.getElementById('username').value = '';
+    document.getElementById('password').value = '';
+  }
+
+  // Allow Enter key on login
+  document.getElementById('password').addEventListener('keydown', e => {
+    if (e.key === 'Enter') login();
+  });
+
+  /* ─────────── APP INIT ─────────── */
+
+  function initApp() {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').style.display          = 'block';
+
+    document.getElementById('user-label').textContent = `👤 ${currentUser.Username}`;
+    const pill = document.getElementById('role-pill');
+    pill.textContent  = currentUser.Role_Name;
+    pill.className    = `role-pill ${currentUser.Role_Name.toLowerCase()}`;
+
+    const isAdmin = currentUser.Role_Name === 'Admin';
+
+    // Show admin-only nav items
+    document.getElementById('nav-console').style.display     = isAdmin ? '' : 'none';
+    document.getElementById('add-patient-card').style.display = isAdmin ? '' : 'none';
+    document.getElementById('del-col').style.display          = isAdmin ? '' : 'none';
+
+    showPage('patients');
+  }
+
+  /* ─────────── NAVIGATION ─────────── */
+
+  function showPage(name) {
+    // Hide all pages
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+
+    document.getElementById(`page-${name}`).classList.add('active');
+    document.getElementById(`nav-${name}`).classList.add('active');
+
+    currentPage = name;
+
+    // Lazy-load page data
+    if (!pageLoaded[name]) {
+      pageLoaded[name] = true;
+      loadPage(name);
+    }
+  }
+
+  async function loadPage(name) {
+    const routes = {
+      patients : '/patients',
+      symptoms : '/symptoms',
+      analysis : '/analysis',
+      therapy  : '/therapy',
+      nested   : '/nested',
+      features : '/db-features'
+    };
+
+    if (!routes[name]) return; // console page handled separately
+
+    try {
+      const res  = await fetch(`${API}${routes[name]}`);
+      const json = await res.json();
+
+      if (!res.ok) { showPageError(name, json.error); return; }
+
+      renderPage(name, json);
+
+    } catch (e) {
+      showPageError(name, 'Failed to fetch data. Is the server running?');
+    }
+  }
+
+  function showPageError(name, msg) {
+    const bodies = {
+      patients : 'patients-body',
+      symptoms : 'symptoms-body',
+      analysis : 'analysis-body',
+      therapy  : 'therapy-body',
+      nested   : 'nested-body',
+      features : 'features-body'
+    };
+    const el = document.getElementById(bodies[name]);
+    if (el) el.innerHTML = `<tr><td colspan="20" style="color:#c0392b;padding:16px;">${msg}</td></tr>`;
+  }
+
+  /* ─────────── RENDER FUNCTIONS ─────────── */
+
+  function renderPage(name, json) {
+    if (name === 'patients') renderPatients(json);
+    else if (name === 'symptoms') renderSymptoms(json);
+    else if (name === 'analysis') renderAnalysis(json);
+    else if (name === 'therapy')  renderTherapy(json);
+    else if (name === 'nested')   renderNested(json);
+    else if (name === 'features') renderFeatures(json);
+  }
+
+  /* Patients */
+  function renderPatients(json) {
+    document.getElementById('patients-sql').textContent = json.query;
+    const isAdmin = currentUser.Role_Name === 'Admin';
+
+    document.getElementById('patients-body').innerHTML = json.data.map(p => `
+      <tr>
+        <td><code>${p.Patient_ID}</code></td>
+        <td>${p.Age_Range}</td>
+        <td>${p.Gender === 'M' ? '♂ Male' : p.Gender === 'F' ? '♀ Female' : '⚧ Other'}</td>
+        <td>${categoryBadge(p.Case_Category)}</td>
+        <td>${p.Profile_Creation_Date ? p.Profile_Creation_Date.substring(0,10) : '-'}</td>
+        ${isAdmin ? `<td><button class="btn btn-danger btn-sm" onclick="deletePatient('${p.Patient_ID}')">Delete</button></td>` : ''}
+      </tr>
+    `).join('');
+  }
+
+  /* Symptoms */
+  function renderSymptoms(json) {
+    document.getElementById('symptoms-sql').textContent = json.query;
+    document.getElementById('symptoms-body').innerHTML = json.data.map(r => `
+      <tr>
+        <td><code>${r.Patient_ID}</code></td>
+        <td>${categoryBadge(r.Case_Category)}</td>
+        <td>${r.Age_Range}</td>
+        <td>${r.Gender}</td>
+        <td><strong>${r.Symptom_Name}</strong></td>
+        <td>${severityBadge(r.Severity_Score)}</td>
+        <td>${r.Record_Date ? r.Record_Date.substring(0,10) : '-'}</td>
+        <td style="max-width:200px;color:#555;">${r.Notes || '-'}</td>
+      </tr>
+    `).join('');
+  }
+
+  /* Analysis */
+  function renderAnalysis(json) {
+    document.getElementById('analysis-sql').textContent = json.query;
+    document.getElementById('analysis-body').innerHTML = json.data.map(r => `
+      <tr>
+        <td><code>${r.Patient_ID}</code></td>
+        <td>${categoryBadge(r.Case_Category)}</td>
+        <td>${r.Age_Range}</td>
+        <td>${r.Gender}</td>
+        <td style="text-align:center;">${r.Total_Records}</td>
+        <td style="text-align:center;"><strong>${r.Avg_Severity}</strong></td>
+        <td style="text-align:center;">${r.Max_Severity}</td>
+        <td style="text-align:center;">${r.Min_Severity}</td>
+        <td>${riskBadge(r.Risk_Level)}</td>
+      </tr>
+    `).join('');
+  }
+
+  /* Therapy */
+  function renderTherapy(json) {
+    document.getElementById('therapy-sql').textContent = json.query;
+    document.getElementById('therapy-body').innerHTML = json.data.map(r => `
+      <tr>
+        <td><code>${r.Session_ID}</code></td>
+        <td><code>${r.Patient_ID}</code></td>
+        <td>${categoryBadge(r.Case_Category)}</td>
+        <td><strong>${r.Therapy_Type}</strong></td>
+        <td>${r.Duration_Minutes} min</td>
+        <td>${r.Frequency_Per_Week}×/week</td>
+        <td>${r.Session_Date ? r.Session_Date.substring(0,10) : '-'}</td>
+      </tr>
+    `).join('');
+  }
+
+  /* Nested */
+  function renderNested(json) {
+    document.getElementById('nested-sql').textContent = json.query;
+    document.getElementById('nested-body').innerHTML = json.data.map(r => `
+      <tr>
+        <td><code>${r.Patient_ID}</code></td>
+        <td>${categoryBadge(r.Case_Category)}</td>
+        <td>${r.Age_Range}</td>
+        <td>${severityBadge(r.Severity_Score)}</td>
+      </tr>
+    `).join('');
+  }
+
+  /* DB Features */
+  function renderFeatures(json) {
+    const tagMap = {
+      'TRIGGER'          : 'tag-trigger',
+      'STORED PROCEDURE' : 'tag-proc',
+      'CURSOR'           : 'tag-cursor',
+      'TCL'              : 'tag-tcl',
+      'DCL'              : 'tag-dcl',
+      'VIEW'             : 'tag-view',
+      'INDEX'            : 'tag-index'
+    };
+
+    const html = json.data.map(f => `
+      <div class="card" style="margin-bottom:16px;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+          <span class="feature-tag ${tagMap[f.Feature] || ''}">${f.Feature}</span>
+          <strong>${f.Name}</strong>
+        </div>
+        <p style="color:var(--muted);font-size:13px;margin-bottom:12px;">${f.Description}</p>
+        <div class="sql-label">SQL</div>
+        <div class="sql-box">${escHtml(f.SQL)}</div>
+      </div>
+    `).join('');
+
+    document.getElementById('features-body').innerHTML = html;
+  }
+
+  /* ─────────── PATIENT CRUD ─────────── */
+
+  async function addPatient() {
+    const pid      = document.getElementById('f-pid').value.trim();
+    const age      = document.getElementById('f-age').value;
+    const gender   = document.getElementById('f-gender').value;
+    const category = document.getElementById('f-category').value;
+    const date     = document.getElementById('f-date').value;
+    const alertEl  = document.getElementById('add-alert');
+
+    if (!pid || !date) {
+      showAlert(alertEl, 'Patient ID and Date are required.', 'error');
+      return;
+    }
+
+    try {
+      const res  = await fetch(`${API}/add-patient`, {
+        method  : 'POST',
+        headers : { 'Content-Type': 'application/json' },
+        body    : JSON.stringify({
+          Patient_ID           : pid,
+          Age_Range            : age,
+          Gender               : gender,
+          Case_Category        : category,
+          Profile_Creation_Date: date
+        })
+      });
+      const json = await res.json();
+
+      if (!res.ok) { showAlert(alertEl, json.error, 'error'); return; }
+
+      showAlert(alertEl, `✅ ${json.data[0].message}`, 'success');
+      document.getElementById('patients-sql').textContent = json.query;
+
+      // Reset form
+      document.getElementById('f-pid').value  = '';
+      document.getElementById('f-date').value = '';
+
+      // Reload patients
+      pageLoaded.patients = false;
+      loadPage('patients');
+
+    } catch (e) {
+      showAlert(alertEl, 'Server error: ' + e.message, 'error');
+    }
+  }
+
+  async function deletePatient(id) {
+    if (!confirm(`Delete patient ${id}? This will also delete all their symptom records, sessions, and outcomes.`)) return;
+
+    try {
+      const res  = await fetch(`${API}/delete-patient/${id}`, { method: 'DELETE' });
+      const json = await res.json();
+
+      if (!res.ok) { alert('Error: ' + json.error); return; }
+
+      document.getElementById('patients-sql').textContent = json.query;
+
+      // Reload patients
+      pageLoaded.patients = false;
+      loadPage('patients');
+
+    } catch (e) {
+      alert('Server error: ' + e.message);
+    }
+  }
+
+  /* ─────────── SQL CONSOLE ─────────── */
+
+  function setQuery(q) {
+    document.getElementById('console-input').value = q;
+  }
+
+  function clearConsole() {
+    document.getElementById('console-input').value = '';
+    document.getElementById('console-sql-label').style.display  = 'none';
+    document.getElementById('console-sql').style.display        = 'none';
+    document.getElementById('console-table-wrap').style.display = 'none';
+    const alertEl = document.getElementById('console-alert');
+    alertEl.className = 'alert';
+    alertEl.textContent = '';
+  }
+
+  async function runQuery() {
+    const query   = document.getElementById('console-input').value.trim();
+    const alertEl = document.getElementById('console-alert');
+
+    if (!query) { showAlert(alertEl, 'Please enter a query.', 'error'); return; }
+
+    alertEl.className = 'alert';
+    document.getElementById('console-sql-label').style.display  = 'none';
+    document.getElementById('console-sql').style.display        = 'none';
+    document.getElementById('console-table-wrap').style.display = 'none';
+
+    try {
+      const res  = await fetch(`${API}/run-query`, {
+        method  : 'POST',
+        headers : { 'Content-Type': 'application/json' },
+        body    : JSON.stringify({ query })
+      });
+      const json = await res.json();
+
+      if (!res.ok) {
+        showAlert(alertEl, json.error, 'error');
+        return;
+      }
+
+      document.getElementById('console-sql-label').style.display = '';
+      document.getElementById('console-sql').style.display       = '';
+      document.getElementById('console-sql').textContent         = json.query;
+
+      renderConsoleTable(json.data);
+
+    } catch (e) {
+      showAlert(alertEl, 'Server error: ' + e.message, 'error');
+    }
+  }
+
+  function renderConsoleTable(data) {
+    const wrap  = document.getElementById('console-table-wrap');
+    const thead = document.getElementById('console-thead');
+    const tbody = document.getElementById('console-tbody');
+
+    if (!data || data.length === 0) {
+      wrap.style.display = 'none';
+      document.getElementById('console-alert').className = 'alert alert-success show';
+      document.getElementById('console-alert').textContent = 'Query executed successfully. No rows returned.';
+      return;
+    }
+
+    const cols = Object.keys(data[0]);
+    thead.innerHTML = `<tr>${cols.map(c => `<th>${c}</th>`).join('')}</tr>`;
+    tbody.innerHTML = data.map(row =>
+      `<tr>${cols.map(c => `<td>${row[c] !== null && row[c] !== undefined ? row[c] : '<i style="color:#aaa;">NULL</i>'}</td>`).join('')}</tr>`
+    ).join('');
+
+    wrap.style.display = '';
+  }
+
+  /* ─────────── BADGE HELPERS ─────────── */
+
+  function severityBadge(score) {
+    let cls = score >= 8 ? 'badge-red' : score >= 6 ? 'badge-orange' : 'badge-green';
+    return `<span class="badge ${cls}">${score}</span>`;
+  }
+
+  function categoryBadge(cat) {
+    const colors = {
+      Anxiety    : '#d5e8d4',
+      Depression : '#dae8fc',
+      Stress     : '#fff2cc',
+      PTSD       : '#f8cecc',
+      OCD        : '#e1d5e7',
+      Bipolar    : '#ffe6cc'
+    };
+    const bg = colors[cat] || '#f0f0f0';
+    return `<span style="background:${bg};padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;">${cat}</span>`;
+  }
+
+  function riskBadge(level) {
+    const map = {
+      Critical : 'badge-red',
+      Moderate : 'badge-orange',
+      Stable   : 'badge-green'
+    };
+    return `<span class="badge ${map[level] || ''}">${level}</span>`;
+  }
+
+  function showAlert(el, msg, type) {
+    el.textContent = msg;
+    el.className   = `alert alert-${type} show`;
+  }
+
+  function escHtml(str) {
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+</script>
+</body>
+</html>

@@ -2,7 +2,7 @@
 // MindVault - Backend Server (server.js)
 // Tech: Node.js + Express + MySQL
 // ============================================================
-
+require('dotenv').config();
 const express    = require('express');
 const mysql      = require('mysql2');
 const cors       = require('cors');
@@ -21,10 +21,10 @@ app.use(express.static(path.join(__dirname)));  // Serves index.html from same f
 // ============================================================
 
 const db = mysql.createConnection({
-  host     : 'localhost',
-  user     : 'root',         // Change if your MySQL user is different
-  password : 'Shri@1234',             // Change to your MySQL root password
-  database : 'MindVault'
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME
 });
 
 db.connect(err => {
